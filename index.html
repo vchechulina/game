@@ -1,0 +1,1120 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Космічний захисник</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            touch-action: none;
+            background-color: #000;
+            font-family: Arial, sans-serif;
+            color: white;
+        }
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+        #gameOver {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+        }
+        #loadingScreen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #000;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        #mainMenu {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 900;
+        }
+        .menu-title {
+            font-size: 36px;
+            margin-bottom: 30px;
+            color: #4CAF50;
+            text-align: center;
+        }
+        .menu-text {
+            font-size: 18px;
+            margin-bottom: 20px;
+            max-width: 80%;
+            text-align: center;
+            line-height: 1.5;
+        }
+        .menu-button {
+            padding: 15px 30px;
+            font-size: 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 20px;
+        }
+        #gameOver img {
+            width: 150px;
+            height: 150px;
+            margin-bottom: 20px;
+        }
+        #gameOver h1 {
+            font-size: 24px;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        #scoreDisplay {
+            font-size: 20px;
+            margin-bottom: 30px;
+        }
+        #restartButton {
+            padding: 10px 20px;
+            font-size: 18px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        #hud {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            z-index: 10;
+            font-size: 16px;
+            background-color: rgba(0, 0, 0, 0.5);
+            padding: 10px;
+            border-radius: 5px;
+        }
+        #loadingProgress {
+            margin-top: 20px;
+            width: 80%;
+            max-width: 300px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Екран завантаження (тепер перший) -->
+    <div id="loadingScreen">
+        <h1>Завантаження гри...</h1>
+        <progress id="loadingProgress" value="0" max="100"></progress>
+    </div>
+
+    <!-- Головне меню (правила) -->
+    <div id="mainMenu">
+        <h1 class="menu-title">КОСМІЧНИЙ ЗАХИСНИК</h1>
+        <div class="menu-text">
+            Керуй своїм кораблем, знищуй ворогів і збирай монети!<br>
+            Уникай астероїдів і перемагай босів!<br>
+            Чим довше виживеш - тим складніше стає!
+        </div>
+        <button class="menu-button" id="startButton">ПОЧАТИ ГРУ</button>
+    </div>
+
+    <!-- Ігрові елементи -->
+    <div id="hud">
+        <div>HP: <span id="hpDisplay">100</span></div>
+        <div>Очки: <span id="scoreHud">0</span></div>
+        <div>Рівень: <span id="levelHud">1</span></div>
+    </div>
+    <canvas id="gameCanvas"></canvas>
+    <div id="gameOver">
+        <img src="game_over.png" alt="Game Over" width="150" height="150">
+        <h1>Гра завершена!</h1>
+        <div class="game-over-message">Ти, як і ми, рятуєш всесвіт!</div>
+        <div id="scoreDisplay">Ваш рахунок: 0</div>
+        <button id="restartButton">Грати знову</button>
+    </div>
+    
+    <style>
+        #gameOver .game-over-message {
+            font-size: 20px;
+            margin-bottom: 20px;
+            text-align: center;
+            color: white;
+        }
+        
+        #scoreDisplay {
+            font-size: 20px;
+            margin-bottom: 30px;
+        }
+    </style>
+
+    <script>
+        // Основні змінні гри
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const hpDisplay = document.getElementById('hpDisplay');
+        const scoreHud = document.getElementById('scoreHud');
+        const levelHud = document.getElementById('levelHud');
+        const gameOverScreen = document.getElementById('gameOver');
+        const scoreDisplay = document.getElementById('scoreDisplay');
+        const restartButton = document.getElementById('restartButton');
+        const loadingScreen = document.getElementById('loadingScreen');
+        const loadingProgress = document.getElementById('loadingProgress');
+        const mainMenu = document.getElementById('mainMenu');
+        const startButton = document.getElementById('startButton');
+        
+        // Розміри canvas
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+        
+        // Змінні гри
+        let gameRunning = false;
+        let score = 0;
+        let level = 1;
+        let gameTime = 0;
+        let lastBossTime = 0;
+        let lastCoinSpawnTime = 0;
+        let bossActive = false;
+        
+        // Завантаження зображень
+        const imagePaths = {
+            player: 'player.svg',
+            enemy: 'enemy.svg',
+            boss: 'boss.svg',
+            asteroid: 'asteroid.svg',
+            coin: 'coin.svg',
+            bullet: 'bullet.svg',
+            enemyBullet: 'enemy_bullet.svg',
+            bossBullet: 'boss_bullet.svg'
+        };
+        
+        const images = {};
+        let imagesLoaded = 0;
+        const totalImages = Object.keys(imagePaths).length;
+        
+        // Функція для завантаження SVG
+        function loadImages() {
+            loadingScreen.style.display = "flex";
+            mainMenu.style.display = "none";
+            
+            Object.keys(imagePaths).forEach(key => {
+                const img = new Image();
+                img.onload = () => {
+                    imagesLoaded++;
+                    loadingProgress.value = (imagesLoaded / totalImages) * 100;
+                    if (imagesLoaded === totalImages) {
+                        loadingScreen.style.display = 'none';
+                        mainMenu.style.display = 'flex';
+                    }
+                };
+                img.onerror = () => {
+                    console.error(`Помилка завантаження зображення: ${imagePaths[key]}`);
+                    images[key] = createPlaceholderImage(key);
+                    imagesLoaded++;
+                    loadingProgress.value = (imagesLoaded / totalImages) * 100;
+                    if (imagesLoaded === totalImages) {
+                        loadingScreen.style.display = 'none';
+                        mainMenu.style.display = 'flex';
+                    }
+                };
+                img.src = imagePaths[key];
+                images[key] = img;
+            });
+        }
+        
+        // Створення заглушки для зображення
+        function createPlaceholderImage(type) {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            
+            let width, height, color;
+            
+            switch(type) {
+                case 'player':
+                    width = 40;
+                    height = 60;
+                    color = '#3498db';
+                    break;
+                case 'enemy':
+                    width = 30;
+                    height = 30;
+                    color = '#e74c3c';
+                    break;
+                case 'boss':
+                    width = 80;
+                    height = 80;
+                    color = '#9b59b6';
+                    break;
+                case 'asteroid':
+                    width = 40;
+                    height = 40;
+                    color = '#95a5a6';
+                    break;
+                case 'coin':
+                    width = 20;
+                    height = 20;
+                    color = '#f1c40f';
+                    break;
+                case 'bullet':
+                    width = 5;
+                    height = 15;
+                    color = '#f1c40f';
+                    break;
+                case 'enemyBullet':
+                    width = 5;
+                    height = 15;
+                    color = '#e74c3c';
+                    break;
+                case 'bossBullet':
+                    width = 8;
+                    height = 8;
+                    color = '#9b59b6';
+                    break;
+                default:
+                    width = 20;
+                    height = 20;
+                    color = '#ffffff';
+            }
+            
+            canvas.width = width;
+            canvas.height = height;
+            
+            if (type === 'asteroid') {
+                ctx.beginPath();
+                ctx.arc(width/2, height/2, width/2, 0, Math.PI*2);
+                ctx.fillStyle = color;
+                ctx.fill();
+            } else if (type === 'coin') {
+                ctx.beginPath();
+                ctx.arc(width/2, height/2, width/2, 0, Math.PI*2);
+                ctx.fillStyle = color;
+                ctx.fill();
+                ctx.fillStyle = '#000';
+                ctx.font = 'bold 10px Arial';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText('$', width/2, height/2);
+            } else {
+                ctx.fillStyle = color;
+                ctx.fillRect(0, 0, width, height);
+            }
+            
+            const img = new Image();
+            img.src = canvas.toDataURL();
+            return img;
+        }
+        
+        // Ініціалізація гри після завантаження зображень
+        function initGame() {
+            // Гравця
+            player.x = canvas.width / 2;
+            player.y = canvas.height / 2;
+            player.targetX = canvas.width / 2;
+            player.targetY = canvas.height / 2;
+            player.hp = player.maxHp;
+            player.bullets = [];
+            
+            // Скидання інших змінних
+            score = 0;
+            level = 1;
+            gameTime = 0;
+            lastBossTime = 0;
+            lastCoinSpawnTime = 0;
+            bossActive = false;
+            
+            enemies = [];
+            asteroids = [];
+            coins = [];
+            explosions = [];
+            boss = null;
+            
+            gameRunning = true;
+            gameOverScreen.style.display = 'none';
+            
+            // Оновлення HUD
+            hpDisplay.textContent = player.hp;
+            scoreHud.textContent = score;
+            levelHud.textContent = level;
+            
+            // Запуск гри
+            gameLoop();
+        }
+        
+        // Гравця
+        const player = {
+            x: 0,
+            y: 0,
+            width: 40,
+            height: 60,
+            speed: 8,
+            hp: 100,
+            maxHp: 100,
+            bullets: [],
+            lastShot: 0,
+            shootDelay: 300,
+            targetX: 0,
+            targetY: 0
+        };
+        
+        // Вороги
+        let enemies = [];
+        let asteroids = [];
+        let coins = [];
+        let explosions = [];
+        let boss = null;
+        
+        // Обробник подій торкання
+        canvas.addEventListener('touchstart', handleTouch);
+        canvas.addEventListener('touchmove', handleTouch);
+        
+        function handleTouch(e) {
+            e.preventDefault();
+            const touch = e.touches[0];
+            player.targetX = touch.clientX;
+            player.targetY = touch.clientY;
+        }
+        
+        // Обробник кліків миші (для тестування на ПК)
+        canvas.addEventListener('mousemove', (e) => {
+            player.targetX = e.clientX;
+            player.targetY = e.clientY;
+        });
+        
+        // Постріл
+        function shoot() {
+            player.bullets.push({
+                x: player.x,
+                y: player.y - player.height / 2,
+                width: 5,
+                height: 15,
+                speed: 12
+            });
+        }
+        
+        // Генерація астероїдів
+        function spawnAsteroid() {
+            const size = Math.random() * 30 + 20;
+            const x = Math.random() * (canvas.width - size);
+            const y = -size;
+            const speed = Math.random() * 2 + 1 + level * 0.2;
+            
+            asteroids.push({
+                x: x,
+                y: y,
+                width: size,
+                height: size,
+                speed: speed,
+                hp: Math.floor(size / 10),
+                maxHp: Math.floor(size / 10),
+                rotation: Math.random() * 360
+            });
+        }
+        
+        // Генерація ворогів
+        function spawnEnemy() {
+            const size = Math.random() * 20 + 30;
+            const x = Math.random() * (canvas.width - size);
+            const y = -size;
+            const speed = Math.random() * 1.5 + 1 + level * 0.1;
+            
+            enemies.push({
+                x: x,
+                y: y,
+                width: size,
+                height: size,
+                speed: speed,
+                hp: 3 + Math.floor(level / 2),
+                maxHp: 3 + Math.floor(level / 2),
+                bullets: [],
+                lastShot: 0,
+                shootDelay: 2000 - level * 100,
+                shootChance: 0.02 + level * 0.005,
+                rotation: Math.random() * 30 - 15,
+                targetRotation: 0,
+                rotationSpeed: 0.5
+            });
+        }
+        
+        // Генерація монет
+        function spawnCoin() {
+            const size = 20;
+            const x = Math.random() * (canvas.width - size);
+            const y = -size;
+            const speed = Math.random() * 2 + 1;
+            const value = 10 + Math.floor(Math.random() * 20);
+            
+            coins.push({
+                x: x,
+                y: y,
+                width: size,
+                height: size,
+                speed: speed,
+                value: value,
+                rotation: 0
+            });
+        }
+        
+        // Генерація боса
+        function spawnBoss() {
+            const size = 80;
+            const x = canvas.width / 2 - size / 2;
+            const y = -size;
+            
+            boss = {
+                x: x,
+                y: y,
+                width: size,
+                height: size,
+                speed: 1,
+                hp: 50 + level * 20,
+                maxHp: 50 + level * 20,
+                bullets: [],
+                lastShot: 0,
+                shootDelay: 1000 - level * 50,
+                movePattern: 0,
+                moveTimer: 0,
+                rotation: Math.random() * 30 - 15,
+                targetRotation: 0,
+                rotationSpeed: 0.3
+            };
+            
+            bossActive = true;
+            lastBossTime = gameTime;
+        }
+        
+        // Оновлення стану гри
+        function update() {
+            if (!gameRunning) return;
+            
+            gameTime += 16; // ~60 FPS
+            
+            // Автоматичний постріл гравця
+            const now = Date.now();
+            if (now - player.lastShot > player.shootDelay) {
+                shoot();
+                player.lastShot = now;
+            }
+            
+            // Генерація монет
+            if (gameTime - lastCoinSpawnTime > 2000) {
+                if (Math.random() < 0.3) {
+                    spawnCoin();
+                }
+                lastCoinSpawnTime = gameTime;
+            }
+            
+            // Оновлення гравця
+            const dx = player.targetX - player.x;
+            const dy = player.targetY - player.y;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            
+            if (distance > player.speed) {
+                player.x += dx / distance * player.speed;
+                player.y += dy / distance * player.speed;
+            } else {
+                player.x = player.targetX;
+                player.y = player.targetY;
+            }
+            
+            // Обмеження руху гравця
+            player.x = Math.max(player.width / 2, Math.min(canvas.width - player.width / 2, player.x));
+            player.y = Math.max(player.height / 2, Math.min(canvas.height - player.height / 2, player.y));
+            
+            // Оновлення куль гравця
+            for (let i = player.bullets.length - 1; i >= 0; i--) {
+                const bullet = player.bullets[i];
+                bullet.y -= bullet.speed;
+                
+                // Видалення куль за межі екрану
+                if (bullet.y + bullet.height < 0) {
+                    player.bullets.splice(i, 1);
+                    continue;
+                }
+                
+                // Перевірка зіткнень з астероїдами
+                for (let j = asteroids.length - 1; j >= 0; j--) {
+                    const asteroid = asteroids[j];
+                    if (checkCollision(bullet, asteroid)) {
+                        asteroid.hp--;
+                        player.bullets.splice(i, 1);
+                        
+                        createExplosion(bullet.x, bullet.y, 10);
+                        
+                        if (asteroid.hp <= 0) {
+                            createExplosion(asteroid.x + asteroid.width / 2, asteroid.y + asteroid.height / 2, asteroid.width / 2);
+                            asteroids.splice(j, 1);
+                            score += 5;
+                        }
+                        break;
+                    }
+                }
+                
+                // Перевірка зіткнень з ворогами
+                for (let j = enemies.length - 1; j >= 0; j--) {
+                    const enemy = enemies[j];
+                    if (checkCollision(bullet, enemy)) {
+                        enemy.hp--;
+                        player.bullets.splice(i, 1);
+                        
+                        createExplosion(bullet.x, bullet.y, 10);
+                        
+                        if (enemy.hp <= 0) {
+                            createExplosion(enemy.x + enemy.width / 2, enemy.y + enemy.height / 2, enemy.width / 2);
+                            enemies.splice(j, 1);
+                            score += 10 + level;
+                        }
+                        break;
+                    }
+                }
+                
+                // Перевірка зіткнень з босом
+                if (boss && checkCollision(bullet, boss)) {
+                    boss.hp--;
+                    player.bullets.splice(i, 1);
+                    
+                    createExplosion(bullet.x, bullet.y, 15);
+                    
+                    if (boss.hp <= 0) {
+                        createExplosion(boss.x + boss.width / 2, boss.y + boss.height / 2, boss.width);
+                        boss = null;
+                        bossActive = false;
+                        score += 100 + level * 20;
+                        level++;
+                    }
+                }
+            }
+            
+            // Оновлення астероїдів
+            for (let i = asteroids.length - 1; i >= 0; i--) {
+                const asteroid = asteroids[i];
+                asteroid.y += asteroid.speed;
+                asteroid.rotation += 0.5;
+                
+                // Видалення астероїдів за межі екрану
+                if (asteroid.y - asteroid.height > canvas.height) {
+                    asteroids.splice(i, 1);
+                    continue;
+                }
+                
+                // Перевірка зіткнення з гравцем
+                if (checkCollision(player, asteroid)) {
+                    player.hp -= 5;
+                    asteroids.splice(i, 1);
+                    createExplosion(asteroid.x + asteroid.width / 2, asteroid.y + asteroid.height / 2, asteroid.width / 2);
+                    
+                    if (player.hp <= 0) {
+                        gameOver();
+                    }
+                }
+            }
+            
+            // Оновлення ворогів
+            for (let i = enemies.length - 1; i >= 0; i--) {
+                const enemy = enemies[i];
+                enemy.y += enemy.speed;
+                
+                // Плавне обертання ворогів
+                if (Math.abs(enemy.rotation - enemy.targetRotation) < 1) {
+                    enemy.targetRotation = Math.random() * 30 - 15;
+                }
+                
+                if (enemy.rotation < enemy.targetRotation) {
+                    enemy.rotation += enemy.rotationSpeed;
+                } else if (enemy.rotation > enemy.targetRotation) {
+                    enemy.rotation -= enemy.rotationSpeed;
+                }
+                
+                // Видалення ворогів за межі екрану
+                if (enemy.y - enemy.height > canvas.height) {
+                    enemies.splice(i, 1);
+                    continue;
+                }
+                
+                // Постріл ворога
+                const now = Date.now();
+                if (Math.random() < enemy.shootChance && now - enemy.lastShot > enemy.shootDelay) {
+                    enemy.bullets.push({
+                        x: enemy.x + enemy.width / 2,
+                        y: enemy.y + enemy.height,
+                        width: 5,
+                        height: 15,
+                        speed: 5
+                    });
+                    enemy.lastShot = now;
+                }
+                
+                // Оновлення куль ворогів
+                for (let j = enemy.bullets.length - 1; j >= 0; j--) {
+                    const bullet = enemy.bullets[j];
+                    bullet.y += bullet.speed;
+                    
+                    // Видалення куль за межі екрану
+                    if (bullet.y > canvas.height) {
+                        enemy.bullets.splice(j, 1);
+                        continue;
+                    }
+                    
+                    // Перевірка зіткнення з гравцем
+                    if (checkCollision(bullet, player)) {
+                        player.hp -= 10;
+                        enemy.bullets.splice(j, 1);
+                        createExplosion(bullet.x, bullet.y, 10);
+                        
+                        if (player.hp <= 0) {
+                            gameOver();
+                        }
+                    }
+                }
+                
+                // Перевірка зіткнення з гравцем
+                if (checkCollision(player, enemy)) {
+                    player.hp -= 15;
+                    enemies.splice(i, 1);
+                    createExplosion(enemy.x + enemy.width / 2, enemy.y + enemy.height / 2, enemy.width / 2);
+                    
+                    if (player.hp <= 0) {
+                        gameOver();
+                    }
+                }
+            }
+            
+            // Оновлення боса
+            if (boss) {
+                // Рух боса
+                boss.moveTimer++;
+                if (boss.moveTimer > 60) {
+                    boss.movePattern = (boss.movePattern + 1) % 4;
+                    boss.moveTimer = 0;
+                }
+                
+                switch (boss.movePattern) {
+                    case 0: // Рух вправо
+                        boss.x += boss.speed;
+                        if (boss.x + boss.width > canvas.width) {
+                            boss.x = canvas.width - boss.width;
+                            boss.movePattern = 1;
+                        }
+                        break;
+                    case 1: // Рух вниз
+                        boss.y += boss.speed;
+                        if (boss.y + boss.height > canvas.height / 3) {
+                            boss.y = canvas.height / 3;
+                            boss.movePattern = 2;
+                        }
+                        break;
+                    case 2: // Рух вліво
+                        boss.x -= boss.speed;
+                        if (boss.x < 0) {
+                            boss.x = 0;
+                            boss.movePattern = 3;
+                        }
+                        break;
+                    case 3: // Рух вгору
+                        boss.y -= boss.speed;
+                        if (boss.y < 0) {
+                            boss.y = 0;
+                            boss.movePattern = 0;
+                        }
+                        break;
+                }
+                
+                // Плавне обертання боса
+                if (Math.abs(boss.rotation - boss.targetRotation) < 1) {
+                    boss.targetRotation = Math.random() * 30 - 15;
+                }
+                
+                if (boss.rotation < boss.targetRotation) {
+                    boss.rotation += boss.rotationSpeed;
+                } else if (boss.rotation > boss.targetRotation) {
+                    boss.rotation -= boss.rotationSpeed;
+                }
+                
+                // Постріл боса
+                const now = Date.now();
+                if (now - boss.lastShot > boss.shootDelay) {
+                    for (let angle = 0; angle < Math.PI * 2; angle += Math.PI / 4) {
+                        boss.bullets.push({
+                            x: boss.x + boss.width / 2,
+                            y: boss.y + boss.height / 2,
+                            width: 8,
+                            height: 8,
+                            speedX: Math.cos(angle) * 4,
+                            speedY: Math.sin(angle) * 4
+                        });
+                    }
+                    boss.lastShot = now;
+                }
+                
+                // Оновлення куль боса
+                for (let i = boss.bullets.length - 1; i >= 0; i--) {
+                    const bullet = boss.bullets[i];
+                    bullet.x += bullet.speedX;
+                    bullet.y += bullet.speedY;
+                    
+                    // Видалення куль за межі екрану
+                    if (bullet.x < 0 || bullet.x > canvas.width || bullet.y < 0 || bullet.y > canvas.height) {
+                        boss.bullets.splice(i, 1);
+                        continue;
+                    }
+                    
+                    // Перевірка зіткнення з гравцем
+                    if (checkCollision(bullet, player)) {
+                        player.hp -= 15;
+                        boss.bullets.splice(i, 1);
+                        createExplosion(bullet.x, bullet.y, 15);
+                        
+                        if (player.hp <= 0) {
+                            gameOver();
+                        }
+                    }
+                }
+                
+                // Перевірка зіткнення з гравцем
+                if (checkCollision(player, boss)) {
+                    player.hp -= 20;
+                    createExplosion(player.x, player.y, 30);
+                    
+                    if (player.hp <= 0) {
+                        gameOver();
+                    }
+                }
+            }
+            
+            // Оновлення монет
+            for (let i = coins.length - 1; i >= 0; i--) {
+                const coin = coins[i];
+                coin.y += coin.speed;
+                coin.rotation += 2;
+                
+                // Видалення монет за межі екрану
+                if (coin.y - coin.height > canvas.height) {
+                    coins.splice(i, 1);
+                    continue;
+                }
+                
+                // Перевірка зіткнення з гравцем
+                if (checkCollision(player, coin)) {
+                    score += coin.value;
+                    coins.splice(i, 1);
+                }
+            }
+            
+            // Оновлення вибухів
+            for (let i = explosions.length - 1; i >= 0; i--) {
+                const explosion = explosions[i];
+                explosion.radius += explosion.growth;
+                explosion.alpha -= 0.02;
+                
+                if (explosion.alpha <= 0) {
+                    explosions.splice(i, 1);
+                }
+            }
+            
+            // Генерація нових об'єктів
+            if (Math.random() < 0.02 + level * 0.002) {
+                spawnAsteroid();
+            }
+            
+            if (Math.random() < 0.01 + level * 0.001) {
+                spawnEnemy();
+            }
+            
+            if (!bossActive && gameTime - lastBossTime > 30000 && Math.random() < 0.005) {
+                spawnBoss();
+            }
+            
+            // Оновлення HUD
+            hpDisplay.textContent = player.hp;
+            scoreHud.textContent = score;
+            levelHud.textContent = level;
+        }
+        
+        // Перевірка зіткнення
+        function checkCollision(obj1, obj2) {
+            return obj1.x < obj2.x + obj2.width &&
+                   obj1.x + obj1.width > obj2.x &&
+                   obj1.y < obj2.y + obj2.height &&
+                   obj1.y + obj1.height > obj2.y;
+        }
+        
+        // Створення вибуху
+        function createExplosion(x, y, radius) {
+            explosions.push({
+                x: x,
+                y: y,
+                radius: radius / 2,
+                maxRadius: radius,
+                growth: radius / 20,
+                color: `hsl(${Math.random() * 60 + 10}, 100%, 50%)`,
+                alpha: 1
+            });
+        }
+        
+        // Кінець гри
+        function gameOver() {
+            gameRunning = false;
+            scoreDisplay.textContent = `Ваш рахунок: ${score}`;
+            gameOverScreen.style.display = 'flex';
+        }
+        
+        // Перезапуск гри
+        restartButton.addEventListener('click', () => {
+            initGame();
+        });
+        
+        // Початок гри з меню
+        startButton.addEventListener('click', () => {
+            mainMenu.style.display = 'none';
+            initGame();
+        });
+        
+        // Відображення гри
+        function render() {
+            // Очищення canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Малювання космічного фону
+            drawSpaceBackground();
+            
+            // Малювання гравця
+            if (images.player.complete) {
+                ctx.drawImage(
+                    images.player, 
+                    player.x - player.width/2, 
+                    player.y - player.height/2, 
+                    player.width, 
+                    player.height
+                );
+            }
+            
+            // Малювання куль гравця
+            player.bullets.forEach(bullet => {
+                if (images.bullet.complete) {
+                    ctx.drawImage(images.bullet, bullet.x, bullet.y, bullet.width, bullet.height);
+                }
+            });
+            
+            // Малювання астероїдів
+            asteroids.forEach(asteroid => {
+                if (images.asteroid.complete) {
+                    ctx.save();
+                    ctx.translate(asteroid.x + asteroid.width/2, asteroid.y + asteroid.height/2);
+                    ctx.rotate(asteroid.rotation * Math.PI/180);
+                    ctx.drawImage(images.asteroid, -asteroid.width/2, -asteroid.height/2, asteroid.width, asteroid.height);
+                    ctx.restore();
+                }
+                
+                // Відображення HP астероїда
+                if (asteroid.hp < asteroid.maxHp) {
+                    ctx.fillStyle = 'white';
+                    ctx.font = '12px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.fillText(asteroid.hp.toString(), asteroid.x + asteroid.width / 2, asteroid.y + asteroid.height / 2 + 4);
+                }
+            });
+            
+            // Малювання ворогів
+            enemies.forEach(enemy => {
+                if (images.enemy.complete) {
+                    ctx.save();
+                    ctx.translate(enemy.x + enemy.width/2, enemy.y + enemy.height/2);
+                    ctx.rotate(enemy.rotation * Math.PI/180);
+                    ctx.drawImage(images.enemy, -enemy.width/2, -enemy.height/2, enemy.width, enemy.height);
+                    ctx.restore();
+                }
+                
+                // Відображення HP ворога
+                ctx.fillStyle = 'white';
+                ctx.font = '12px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText(enemy.hp.toString(), enemy.x + enemy.width / 2, enemy.y + enemy.height / 2 + 4);
+                
+                // Малювання куль ворогів
+                enemy.bullets.forEach(bullet => {
+                    if (images.enemyBullet.complete) {
+                        ctx.drawImage(images.enemyBullet, bullet.x, bullet.y, bullet.width, bullet.height);
+                    }
+                });
+            });
+            
+            // Малювання боса
+            if (boss && images.boss.complete) {
+                ctx.save();
+                ctx.translate(boss.x + boss.width/2, boss.y + boss.height/2);
+                ctx.rotate(boss.rotation * Math.PI/180);
+                ctx.drawImage(images.boss, -boss.width/2, -boss.height/2, boss.width, boss.height);
+                ctx.restore();
+                
+                // Відображення HP боса
+                const hpPercent = boss.hp / boss.maxHp;
+                const barWidth = boss.width;
+                const barHeight = 5;
+                const barX = boss.x;
+                const barY = boss.y - 10;
+                
+                ctx.fillStyle = '#333';
+                ctx.fillRect(barX, barY, barWidth, barHeight);
+                
+                ctx.fillStyle = hpPercent > 0.5 ? '#2ecc71' : hpPercent > 0.2 ? '#f39c12' : '#e74c3c';
+                ctx.fillRect(barX, barY, barWidth * hpPercent, barHeight);
+                
+                ctx.strokeStyle = '#000';
+                ctx.lineWidth = 1;
+                ctx.strokeRect(barX, barY, barWidth, barHeight);
+            }
+            
+            // Малювання куль боса
+            if (boss) {
+                boss.bullets.forEach(bullet => {
+                    if (images.bossBullet.complete) {
+                        ctx.drawImage(images.bossBullet, bullet.x, bullet.y, bullet.width, bullet.height);
+                    }
+                });
+            }
+            
+            // Малювання монет
+            coins.forEach(coin => {
+                if (images.coin.complete) {
+                    ctx.save();
+                    ctx.translate(coin.x + coin.width/2, coin.y + coin.height/2);
+                    ctx.rotate(coin.rotation * Math.PI/180);
+                    ctx.drawImage(images.coin, -coin.width/2, -coin.height/2, coin.width, coin.height);
+                    ctx.restore();
+                }
+                
+                // Відображення вартості монети
+                ctx.fillStyle = 'black';
+                ctx.font = '10px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText(coin.value.toString(), coin.x + coin.width / 2, coin.y + coin.height / 2 + 3);
+            });
+            
+            // Малювання вибухів
+            explosions.forEach(explosion => {
+                ctx.globalAlpha = explosion.alpha;
+                
+                const gradient = ctx.createRadialGradient(
+                    explosion.x, explosion.y, 0,
+                    explosion.x, explosion.y, explosion.radius
+                );
+                gradient.addColorStop(0, explosion.color);
+                gradient.addColorStop(1, 'rgba(0,0,0,0)');
+                
+                ctx.fillStyle = gradient;
+                ctx.beginPath();
+                ctx.arc(explosion.x, explosion.y, explosion.radius, 0, Math.PI * 2);
+                ctx.fill();
+                
+                ctx.globalAlpha = 1;
+            });
+        }
+        
+        // Малювання космічного фону
+        function drawSpaceBackground() {
+            // Темний фіалетовий фон
+            ctx.fillStyle = '#0a001a';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Зірки
+            if (!window.stars) {
+                window.stars = [];
+                for (let i = 0; i < 300; i++) {
+                    window.stars.push({
+                        x: Math.random() * canvas.width,
+                        y: Math.random() * canvas.height,
+                        size: Math.random() * 1.5 + 0.5,
+                        alpha: Math.random() * 0.8 + 0.2,
+                        twinkleSpeed: Math.random() * 0.05 + 0.01,
+                        twinklePhase: Math.random() * Math.PI * 2
+                    });
+                }
+            }
+            
+            // Оновлення та малювання зірок
+            const now = Date.now();
+            window.stars.forEach(star => {
+                star.twinklePhase += star.twinkleSpeed;
+                const twinkle = Math.sin(star.twinklePhase) * 0.3 + 0.7;
+                
+                ctx.fillStyle = `rgba(255, 255, 255, ${star.alpha * twinkle})`;
+                ctx.fillRect(star.x, star.y, star.size, star.size);
+            });
+            
+            // Туманності
+            if (!window.nebulas) {
+                window.nebulas = [];
+                // Фіалетові туманності
+                for (let i = 0; i < 2; i++) {
+                    window.nebulas.push({
+                        x: Math.random() * canvas.width,
+                        y: Math.random() * canvas.height,
+                        radius: Math.random() * 300 + 150,
+                        color: `hsla(${Math.random() * 30 + 270}, 80%, 50%, ${Math.random() * 0.1 + 0.05})`
+                    });
+                }
+                // Блакитні туманності
+                for (let i = 0; i < 1; i++) {
+                    window.nebulas.push({
+                        x: Math.random() * canvas.width,
+                        y: Math.random() * canvas.height,
+                        radius: Math.random() * 250 + 100,
+                        color: `hsla(${Math.random() * 30 + 200}, 80%, 50%, ${Math.random() * 0.1 + 0.05})`
+                    });
+                }
+            }
+            
+            // Малювання туманностей
+            window.nebulas.forEach(nebula => {
+                const gradient = ctx.createRadialGradient(
+                    nebula.x, nebula.y, 0,
+                    nebula.x, nebula.y, nebula.radius
+                );
+                gradient.addColorStop(0, nebula.color);
+                gradient.addColorStop(1, 'hsla(270, 80%, 10%, 0)');
+                
+                ctx.fillStyle = gradient;
+                ctx.beginPath();
+                ctx.arc(nebula.x, nebula.y, nebula.radius, 0, Math.PI * 2);
+                ctx.fill();
+            });
+        }
+        
+        // Головний цикл гри
+        function gameLoop() {
+            update();
+            render();
+            if (gameRunning) {
+                requestAnimationFrame(gameLoop);
+            }
+        }
+        
+        // Початок завантаження зображень
+        loadImages();
+    </script>
+</body>
+</html>
