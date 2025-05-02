@@ -169,7 +169,6 @@
     </style>
 
     <script>
-        setupTelegramWebApp();
         // Основні змінні гри
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
@@ -947,9 +946,7 @@
             scoreDisplay.textContent = `Ваш рахунок: ${score}`;
             gameOverScreen.style.display = 'flex';
 
-            if (window.Telegram && Telegram.WebApp) {
-                sendGameResultsToBot(score);
-            }
+            sendGameResultsToBot(score);
         }
         
         // Перезапуск гри
@@ -1187,50 +1184,31 @@
                 requestAnimationFrame(gameLoop);
             }
         }
-        
-        // Telegram WebApp API Integration
-    function setupTelegramWebApp() {
-        // Перевіряємо, чи гра запущена в Telegram WebApp
-        if (window.Telegram && Telegram.WebApp) {
-            Telegram.WebApp.ready();
-            const tgWebApp = Telegram.WebApp;
-            
-            // Розгортаємо WebApp на весь екран
-            tgWebApp.expand();
-            
-            // Отримуємо дані користувача
-            const user = tgWebApp.initDataUnsafe.user;
-            
-            // Зберігаємо дані для подальшого використання
-            window.tgUserData = {
-                id: user?.id,
-                first_name: user?.first_name,
-                last_name: user?.last_name,
-                username: user?.username
-            };
-        }
-    }
 
-    // Функція для відправки результатів у бот
-    function sendGameResultsToBot(score) {
-        if (window.Telegram && Telegram.WebApp) {
-            Telegram.WebApp.ready();
-            const tgWebApp = Telegram.WebApp;
-            
-            // Відправляємо дані назад у бот
-            tgWebApp.sendData(JSON.stringify({
-                action: 'game_score',
-                score: score,
-                user: window.tgUserData || {
-                    id: null,
-                    username: 'anonymous'
-                },
-                level: level,
-                timestamp: new Date().toISOString()
-            }));
+        function getUsernameFromUrl() {
+            const urlParams = new URLSearchParams(window.location.search);
+            return urlParams.get('username') || 'Гість';
         }
-    }
 
+        function sendGameResultsToBot(score) {
+            const username = getUsernameFromUrl(); // Функція для отримання username з URL
+            const webAppUrl = 'https://script.google.com/macros/s/AKfycbwkKmZ9U5_Z1Z8MYhX2hNRyzuEQwRZ2YTVzW_FPtWf2w5CLQL_lmRUlX8BDvcRl21hr/exec'; // Замініть на URL з Apps Script
+
+            fetch(webAppUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, score })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === "error") {
+                console.error("Помилка Apps Script:", data.message);
+                } else {
+                console.log("Рейтинг оновлено!");
+                }
+            })
+            .catch(error => console.error("Помилка мережі:", error));
+        }
         // Початок завантаження зображень
         loadImages();
     </script>
