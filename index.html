@@ -1254,7 +1254,7 @@
 
         async function sendGameResultsToBot(score) {
             const username = getUsernameFromUrl();
-            const webAppUrl = 'https://script.google.com/macros/s/AKfycbxSgXkGicEyeVK1h-BS_XIua-_3s3iLZQAVWCTnuFMia-2RsYHXXXLfWb3L__2ePhzY/exec'; // Ваш URL
+            const webAppUrl = 'https://script.google.com/macros/s/AKfycbziZgzKZVRj9wdRgRT_ftd5eodRjr7JGbl-SNDj1Hiaub-Q0rNm-oN5c22w0nKq5wbE/exec'; // Ваш URL
 
             try {
                 const response = await fetch(webAppUrl, {
@@ -1299,29 +1299,45 @@ async function showRating() {
     ratingList.innerHTML = '<p style="color: white; text-align: center;">Завантаження...</p>';
     
     try {
-        const response = await fetch('https://script.google.com/macros/s/AKfycbxSgXkGicEyeVK1h-BS_XIua-_3s3iLZQAVWCTnuFMia-2RsYHXXXLfWb3L__2ePhzY/exec', {
-            mode: 'no-cors'
-        });
-        const players = await response.json();
+        // Використовуємо JSONP підхід для обходу CORS
+        const callbackName = 'handleRatingData_' + Date.now();
+        window[callbackName] = function(data) {
+            // Обробка даних
+            if (data && data.length > 0) {
+                ratingList.innerHTML = '';
+                data.forEach((player, index) => {
+                    const playerElement = document.createElement('div');
+                    playerElement.className = 'rating-item';
+                    playerElement.innerHTML = `
+                        <span class="rating-position">${index + 1}.</span>
+                        <span class="rating-name">${player[0] || 'Невідомий'}</span>
+                        <span class="rating-score">${player[1] || 0}</span>
+                    `;
+                    ratingList.appendChild(playerElement);
+                });
+            } else {
+                ratingList.innerHTML = '<p style="color: white; text-align: center;">Рейтинг порожній</p>';
+            }
+            // Видаляємо тимчасову функцію
+            delete window[callbackName];
+        };
+
+        // Створюємо script тег для JSONP запиту
+        const script = document.createElement('script');
+        script.src = `https://script.google.com/macros/s/AKfycbziZgzKZVRj9wdRgRT_ftd5eodRjr7JGbl-SNDj1Hiaub-Q0rNm-oN5c22w0nKq5wbE/exec?callback=${callbackName}`;
+        document.body.appendChild(script);
         
-        if (players && players.length > 0) {
-            ratingList.innerHTML = '';
-            players.forEach((player, index) => {
-                const playerElement = document.createElement('div');
-                playerElement.className = 'rating-item';
-                playerElement.innerHTML = `
-                    <span class="rating-position">${index + 1}.</span>
-                    <span class="rating-name">${player[0] || 'Невідомий'}</span>
-                    <span class="rating-score">${player[1] || 0}</span>
-                `;
-                ratingList.appendChild(playerElement);
-            });
-        } else {
-            ratingList.innerHTML = '<p style="color: white; text-align: center;">Рейтинг порожній</p>';
-        }
+        // Видаляємо script тег після завантаження
+        script.onload = function() {
+            document.body.removeChild(script);
+        };
+        
     } catch (error) {
         console.error('Помилка завантаження рейтингу:', error);
-        ratingList.innerHTML = '<p style="color: #e74c3c; text-align: center;">Помилка завантаження рейтингу</p>';
+        ratingList.innerHTML = `
+            <p style="color: #e74c3c; text-align: center;">Помилка завантаження рейтингу</p>
+            <p style="color: white; text-align: center; font-size: 14px;">${error.message}</p>
+        `;
     }
 }
         // Початок завантаження зображень
