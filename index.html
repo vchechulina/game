@@ -945,6 +945,10 @@
             gameRunning = false;
             scoreDisplay.textContent = `Ваш рахунок: ${score}`;
             gameOverScreen.style.display = 'flex';
+
+            if (window.Telegram && Telegram.WebApp) {
+                sendGameResultsToBot(score);
+            }
         }
         
         // Перезапуск гри
@@ -1183,6 +1187,59 @@
             }
         }
         
+        // Telegram WebApp API Integration
+    function setupTelegramWebApp() {
+        // Перевіряємо, чи гра запущена в Telegram WebApp
+        if (window.Telegram && Telegram.WebApp) {
+            const tgWebApp = Telegram.WebApp;
+            
+            // Розгортаємо WebApp на весь екран
+            tgWebApp.expand();
+            
+            // Отримуємо дані користувача
+            const user = tgWebApp.initDataUnsafe.user;
+            
+            // Зберігаємо дані для подальшого використання
+            window.tgUserData = {
+                id: user?.id,
+                first_name: user?.first_name,
+                last_name: user?.last_name,
+                username: user?.username
+            };
+            
+            // Додаємо ім'я гравця в HUD (якщо є)
+            if (user) {
+                const playerName = `${user.first_name || ''} ${user.last_name || ''}`.trim();
+                if (playerName) {
+                    const hud = document.getElementById('hud');
+                    hud.innerHTML += `<div>Гравець: ${playerName}</div>`;
+                }
+            }
+        }
+    }
+
+    // Функція для відправки результатів у бот
+    function sendGameResultsToBot(score) {
+        if (window.Telegram && Telegram.WebApp) {
+            const tgWebApp = Telegram.WebApp;
+            
+            // Відправляємо дані назад у бот
+            tgWebApp.sendData(JSON.stringify({
+                action: 'game_score',
+                score: score,
+                user: window.tgUserData || {
+                    id: null,
+                    username: 'anonymous'
+                },
+                level: level,
+                timestamp: new Date().toISOString()
+            }));
+        }
+    }
+
+        // Викликаємо при завантаженні сторінки
+        window.addEventListener('DOMContentLoaded', setupTelegramWebApp);
+
         // Початок завантаження зображень
         loadImages();
     </script>
