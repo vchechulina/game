@@ -1189,8 +1189,9 @@
         
         // Telegram WebApp API Integration
     function setupTelegramWebApp() {
+        prompt('Press OK to start the game.');
         // Перевіряємо, чи гра запущена в Telegram WebApp
-        
+        if (window.Telegram && Telegram.WebApp) {
             const tgWebApp = Telegram.WebApp;
             
             // Розгортаємо WebApp на весь екран
@@ -1211,9 +1212,11 @@
             if (user) {
                 const playerName = `${user.first_name || ''} ${user.last_name || ''}`.trim();
                 if (playerName) {
-                    scoreDisplay.innerHTML += `<div>Гравець: ${playerName}</div>`;
+                    hud = getElementById('hud');
+                    hub.innerHTML += `<div>Гравець: ${playerName}</div>`;
                 }
             }
+        }
     }
 
     // Функція для відправки результатів у бот
