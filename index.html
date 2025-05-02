@@ -19,6 +19,57 @@
             width: 100%;
             height: 100%;
         }
+
+        /* Стилі для рейтингу */
+    #ratingModal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0,0,0,0.8);
+        z-index: 2000;
+        justify-content: center;
+        align-items: center;
+        flex-direction: column;
+    }
+
+    .rating-container {
+        background-color: #222;
+        padding: 20px;
+        border-radius: 10px;
+        max-width: 90%;
+        max-height: 80%;
+        overflow-y: auto;
+    }
+
+    .rating-item {
+        display: flex;
+        justify-content: space-between;
+        padding: 10px 15px;
+        border-bottom: 1px solid #444;
+        color: white;
+    }
+
+    .rating-item:nth-child(odd) {
+        background-color: rgba(255,255,255,0.05);
+    }
+
+    .rating-position {
+        font-weight: bold;
+        color: #4CAF50;
+        margin-right: 15px;
+    }
+
+    .rating-name {
+        flex-grow: 1;
+    }
+
+    .rating-score {
+        font-weight: bold;
+    }
+
         #gameOver {
             position: absolute;
             top: 0;
@@ -167,6 +218,22 @@
             margin-bottom: 30px;
         }
     </style>
+
+
+    <!-- Кнопка рейтингу в головному меню -->
+<button class="menu-button" id="ratingButton" style="margin-top: 10px;">РЕЙТИНГ ГРАВЦІВ</button>
+
+<!-- Кнопка рейтингу на екрані завершення гри -->
+<button id="ratingButtonGameOver" style="margin-top: 10px; padding: 10px 20px; font-size: 18px; background-color: #4CAF50; color: white; border: none; border-radius: 5px; cursor: pointer;">РЕЙТИНГ ГРАВЦІВ</button>
+
+<!-- Модальне вікно рейтингу -->
+<div id="ratingModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.8); z-index: 2000; justify-content: center; align-items: center; flex-direction: column;">
+    <div style="background-color: #222; padding: 20px; border-radius: 10px; max-width: 90%; max-height: 80%; overflow-y: auto;">
+        <h2 style="color: #4CAF50; text-align: center; margin-bottom: 20px;">ТОП-10 ГРАВЦІВ</h2>
+        <div id="ratingList" style="min-width: 250px;"></div>
+        <button id="closeRating" style="display: block; margin: 20px auto 0; padding: 10px 20px; background-color: #e74c3c; color: white; border: none; border-radius: 5px; cursor: pointer;">ЗАКРИТИ</button>
+    </div>
+</div>
 
     <script>
         // Основні змінні гри
@@ -1216,8 +1283,53 @@
                 console.error('Помилка відправки:', error);
             }
         }
+
+        // Елементи рейтингу
+const ratingButton = document.getElementById('ratingButton');
+const ratingButtonGameOver = document.getElementById('ratingButtonGameOver');
+const ratingModal = document.getElementById('ratingModal');
+const ratingList = document.getElementById('ratingList');
+const closeRating = document.getElementById('closeRating');
+
+// Обробники кліків для кнопок рейтингу
+ratingButton.addEventListener('click', showRating);
+ratingButtonGameOver.addEventListener('click', showRating);
+closeRating.addEventListener('click', () => {
+    ratingModal.style.display = 'none';
+});
+
+// Функція для відображення рейтингу
+async function showRating() {
+    ratingModal.style.display = 'flex';
+    ratingList.innerHTML = '<p style="color: white; text-align: center;">Завантаження...</p>';
+    
+    try {
+        const response = await fetch('https://script.google.com/macros/s/AKfycbwBUszBaU1YNoPydGxWcsgAJZwGrQZUsd_M6L97OkkmwAxdtO7UgnuSqboO4sK1SdAi/exec?action=getTopPlayers');
+        const players = await response.json();
+        
+        if (players && players.length > 0) {
+            ratingList.innerHTML = '';
+            players.forEach((player, index) => {
+                const playerElement = document.createElement('div');
+                playerElement.className = 'rating-item';
+                playerElement.innerHTML = `
+                    <span class="rating-position">${index + 1}.</span>
+                    <span class="rating-name">${player[0] || 'Невідомий'}</span>
+                    <span class="rating-score">${player[1] || 0}</span>
+                `;
+                ratingList.appendChild(playerElement);
+            });
+        } else {
+            ratingList.innerHTML = '<p style="color: white; text-align: center;">Рейтинг порожній</p>';
+        }
+    } catch (error) {
+        console.error('Помилка завантаження рейтингу:', error);
+        ratingList.innerHTML = '<p style="color: #e74c3c; text-align: center;">Помилка завантаження рейтингу</p>';
+    }
+}
         // Початок завантаження зображень
         loadImages();
     </script>
+
 </body>
 </html>
