@@ -1254,7 +1254,7 @@
 
         async function sendGameResultsToBot(score) {
             const username = getUsernameFromUrl();
-            const webAppUrl = 'https://script.google.com/macros/s/AKfycbwBUszBaU1YNoPydGxWcsgAJZwGrQZUsd_M6L97OkkmwAxdtO7UgnuSqboO4sK1SdAi/exec'; // Ваш URL
+            const webAppUrl = 'https://script.google.com/macros/s/AKfycbyakQMPDzLUWx7Ajy0gDgWKM56jn-fS8NmjFi5Ybc36PmTNc5TWpqa-SrAQJnCvmGgW/exec'; // Ваш URL
 
             try {
                 const response = await fetch(webAppUrl, {
@@ -1299,9 +1299,20 @@ async function showRating() {
     ratingList.innerHTML = '<p style="color: white; text-align: center;">Завантаження...</p>';
     
     try {
-        const response = await fetch('https://script.google.com/macros/s/AKfycbwBUszBaU1YNoPydGxWcsgAJZwGrQZUsd_M6L97OkkmwAxdtO7UgnuSqboO4sK1SdAi/exec?action=getTopPlayers', {
-            mode: 'no-cors'
+        // Використовуємо проксі для обходу CORS
+        const proxyUrl = 'https://cors-anywhere.herokuapp.com/';
+        const targetUrl = 'https://script.google.com/macros/s/AKfycbyakQMPDzLUWx7Ajy0gDgWKM56jn-fS8NmjFi5Ybc36PmTNc5TWpqa-SrAQJnCvmGgW/exec';
+        
+        const response = await fetch(proxyUrl + targetUrl, {
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
         });
+        
+        if (!response.ok) {
+            throw new Error(`Помилка HTTP: ${response.status}`);
+        }
+        
         const players = await response.json();
         
         if (players && players.length > 0) {
@@ -1321,7 +1332,14 @@ async function showRating() {
         }
     } catch (error) {
         console.error('Помилка завантаження рейтингу:', error);
-        ratingList.innerHTML = '<p style="color: #e74c3c; text-align: center;">Помилка завантаження рейтингу</p>';
+        ratingList.innerHTML = `
+            <p style="color: #e74c3c; text-align: center;">
+                Помилка завантаження рейтингу
+            </p>
+            <p style="color: white; text-align: center; font-size: 14px;">
+                Спробуйте оновити сторінку або зайти пізніше
+            </p>
+        `;
     }
 }
         // Початок завантаження зображень
