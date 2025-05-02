@@ -132,8 +132,8 @@
     <div id="mainMenu">
         <h1 class="menu-title">КОСМІЧНИЙ ЗАХИСНИК</h1>
         <div class="menu-text">
-            Керуй своїм кораблем, знищуй ворогів і збирай монети!<br>
-            Уникай астероїдів і перемагай босів!<br>
+            Керуй своїм кораблем, знищуй ворогів і рятуй астронавтів!<br>
+            Уникай астероїдів, збирай аптечки і перемагай босів!<br>
             Чим довше виживеш - тим складніше стає!
         </div>
         <button class="menu-button" id="startButton">ПОЧАТИ ГРУ</button>
@@ -199,7 +199,16 @@
         let gameTime = 0;
         let lastBossTime = 0;
         let lastCoinSpawnTime = 0;
+        let kits = [];
         let bossActive = false;
+
+        // Базові ймовірності появи об'єктів (коли боса немає)
+        const baseSpawnRates = {
+            asteroid: 0.02,
+            enemy: 0.01,
+            kit: 0.005,
+            boss: 0.005
+        };
         
         // Завантаження зображень
         const imagePaths = {
@@ -207,10 +216,11 @@
             enemy: 'enemy.svg',
             boss: 'boss.svg',
             asteroid: 'asteroid.svg',
-            coin: 'coin.svg',
+            coin: 'astronaut.svg',
             bullet: 'bullet.svg',
             enemyBullet: 'enemy_bullet.svg',
-            bossBullet: 'boss_bullet.svg'
+            bossBullet: 'boss_bullet.svg',
+            kit: 'kit.svg'
         };
         
         const images = {};
@@ -246,6 +256,25 @@
                 images[key] = img;
             });
         }
+
+        //аптечки
+    function spawnKit() {
+        const size = 25; // трохи більше за астронавтів
+        const x = Math.random() * (canvas.width - size);
+        const y = -size;
+        const speed = Math.random() * 2 + 1;
+        const healAmount = 5 + Math.floor(Math.random() * 10); // кількість HP для лікування
+        
+        kits.push({
+            x: x,
+            y: y,
+            width: size,
+            height: size,
+            speed: speed,
+            heal: healAmount,
+            rotation: 0
+        });
+    }
         
         // Створення заглушки для зображення
         function createPlaceholderImage(type) {
@@ -462,7 +491,7 @@
         
         // Генерація монет
         function spawnCoin() {
-            const size = 20;
+            const size = 35;
             const x = Math.random() * (canvas.width - size);
             const y = -size;
             const speed = Math.random() * 2 + 1;
@@ -478,7 +507,7 @@
                 rotation: 0
             });
         }
-        
+
         // Генерація боса
         function spawnBoss() {
             const size = 80;
@@ -522,7 +551,7 @@
             
             // Генерація монет
             if (gameTime - lastCoinSpawnTime > 2000) {
-                if (Math.random() < 0.3) {
+                if (Math.random() < 0.5) {
                     spawnCoin();
                 }
                 lastCoinSpawnTime = gameTime;
@@ -628,10 +657,29 @@
                     createExplosion(asteroid.x + asteroid.width / 2, asteroid.y + asteroid.height / 2, asteroid.width / 2);
                     
                     if (player.hp <= 0) {
+                        player.hp = 0;
                         gameOver();
                     }
                 }
             }
+        // Оновлення аптечок
+        for (let i = kits.length - 1; i >= 0; i--) {
+            const kit = kits[i];
+            kit.y += kit.speed;
+            kit.rotation += 2;
+            
+            // Видалення аптечок за межі екрану
+            if (kit.y - kit.height > canvas.height) {
+                kits.splice(i, 1);
+                continue;
+            }
+            
+            // Перевірка зіткнення з гравцем
+            if (checkCollision(player, kit)) {
+                player.hp = Math.min(player.maxHp, player.hp + kit.heal);
+                kits.splice(i, 1);
+            }
+        }
             
             // Оновлення ворогів
             for (let i = enemies.length - 1; i >= 0; i--) {
@@ -835,16 +883,29 @@
                 }
             }
             
-            // Генерація нових об'єктів
-            if (Math.random() < 0.02 + level * 0.002) {
+            // Отримуємо поточні ймовірності появи об'єктів
+            const currentSpawnRates = {
+                asteroid: boss ? baseSpawnRates.asteroid * 0.6 : baseSpawnRates.asteroid, // Зменшуємо на 40% коли є бос
+                enemy: boss ? baseSpawnRates.enemy * 0.6 : baseSpawnRates.enemy, // Зменшуємо на 40% коли є бос
+                kit: baseSpawnRates.kit, // Аптечки залишаються з тією ж ймовірністю
+                boss: baseSpawnRates.boss
+            };
+
+            // Генерація нових об'єктів з урахуванням поточних ймовірностей
+            if (Math.random() < currentSpawnRates.asteroid + level * 0.002) {
                 spawnAsteroid();
             }
-            
-            if (Math.random() < 0.01 + level * 0.001) {
+
+            if (Math.random() < currentSpawnRates.enemy + level * 0.001) {
                 spawnEnemy();
             }
-            
-            if (!bossActive && gameTime - lastBossTime > 30000 && Math.random() < 0.005) {
+
+            if (Math.random() < currentSpawnRates.kit) {
+                spawnKit();
+            }
+
+            const bossCooldown = 20000 + level * 5000; // 20s + 5s за рівень
+            if (!bossActive && gameTime - lastBossTime > bossCooldown && Math.random() < currentSpawnRates.boss) {
                 spawnBoss();
             }
             
@@ -916,6 +977,17 @@
             player.bullets.forEach(bullet => {
                 if (images.bullet.complete) {
                     ctx.drawImage(images.bullet, bullet.x, bullet.y, bullet.width, bullet.height);
+                }
+            });
+
+            // Малювання аптечок
+            kits.forEach(kit => {
+                if (images.kit.complete) {
+                    ctx.save();
+                    ctx.translate(kit.x + kit.width/2, kit.y + kit.height/2);
+                    ctx.rotate(kit.rotation * Math.PI/180);
+                    ctx.drawImage(images.kit, -kit.width/2, -kit.height/2, kit.width, kit.height);
+                    ctx.restore();
                 }
             });
             
@@ -1006,12 +1078,6 @@
                     ctx.drawImage(images.coin, -coin.width/2, -coin.height/2, coin.width, coin.height);
                     ctx.restore();
                 }
-                
-                // Відображення вартості монети
-                ctx.fillStyle = 'black';
-                ctx.font = '10px Arial';
-                ctx.textAlign = 'center';
-                ctx.fillText(coin.value.toString(), coin.x + coin.width / 2, coin.y + coin.height / 2 + 3);
             });
             
             // Малювання вибухів
@@ -1036,7 +1102,7 @@
         
         // Малювання космічного фону
         function drawSpaceBackground() {
-            // Темний фіалетовий фон
+            // Темний фіолетовий фон
             ctx.fillStyle = '#0a001a';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
             
