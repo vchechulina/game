@@ -734,6 +734,7 @@
                         createExplosion(bullet.x, bullet.y, 10);
                         
                         if (player.hp <= 0) {
+                            player.hp = 0;
                             gameOver();
                         }
                     }
@@ -746,6 +747,7 @@
                     createExplosion(enemy.x + enemy.width / 2, enemy.y + enemy.height / 2, enemy.width / 2);
                     
                     if (player.hp <= 0) {
+                        player.hp = 0;
                         gameOver();
                     }
                 }
@@ -837,6 +839,7 @@
                         createExplosion(bullet.x, bullet.y, 15);
                         
                         if (player.hp <= 0) {
+                            player.hp = 0;
                             gameOver();
                         }
                     }
@@ -848,6 +851,7 @@
                     createExplosion(player.x, player.y, 30);
                     
                     if (player.hp <= 0) {
+                        player.hp = 0;
                         gameOver();
                     }
                 }
