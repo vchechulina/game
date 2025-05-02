@@ -1206,7 +1206,7 @@
                 last_name: user?.last_name,
                 username: user?.username
             };
-            prompt(window.tgUserData.id);
+            alert(window.tgUserData.id);
             // Додаємо ім'я гравця в HUD (якщо є)
             if (user) {
                 const playerName = `${user.first_name || ''} ${user.last_name || ''}`.trim();
