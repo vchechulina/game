@@ -1189,9 +1189,9 @@
         
         // Telegram WebApp API Integration
     function setupTelegramWebApp() {
-        prompt('Press OK to start the game.');
         // Перевіряємо, чи гра запущена в Telegram WebApp
         if (window.Telegram && Telegram.WebApp) {
+            prompt('Press OK to start the game.');
             const tgWebApp = Telegram.WebApp;
             
             // Розгортаємо WebApp на весь екран
