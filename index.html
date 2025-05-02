@@ -169,6 +169,7 @@
     </style>
 
     <script>
+        setupTelegramWebApp();
         // Основні змінні гри
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
@@ -1190,6 +1191,8 @@
         // Telegram WebApp API Integration
     function setupTelegramWebApp() {
         // Перевіряємо, чи гра запущена в Telegram WebApp
+        if (window.Telegram && Telegram.WebApp) {
+            Telegram.WebApp.ready();
             const tgWebApp = Telegram.WebApp;
             
             // Розгортаємо WebApp на весь екран
@@ -1205,20 +1208,13 @@
                 last_name: user?.last_name,
                 username: user?.username
             };
-            alert(window.tgUserData.id);
-            // Додаємо ім'я гравця в HUD (якщо є)
-            if (user) {
-                const playerName = `${user.first_name || ''} ${user.last_name || ''}`.trim();
-                if (playerName) {
-                    hud = getElementById('hud');
-                    hub.innerHTML += `<div>Гравець: ${playerName}</div>`;
-                }
-            }
         }
+    }
 
     // Функція для відправки результатів у бот
     function sendGameResultsToBot(score) {
         if (window.Telegram && Telegram.WebApp) {
+            Telegram.WebApp.ready();
             const tgWebApp = Telegram.WebApp;
             
             // Відправляємо дані назад у бот
@@ -1234,9 +1230,6 @@
             }));
         }
     }
-
-        // Викликаємо при завантаженні сторінки
-        setupTelegramWebApp()
 
         // Початок завантаження зображень
         loadImages();
