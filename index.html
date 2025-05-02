@@ -1211,8 +1211,7 @@
             if (user) {
                 const playerName = `${user.first_name || ''} ${user.last_name || ''}`.trim();
                 if (playerName) {
-                    const hud = document.getElementById('hud');
-                    hud.innerHTML += `<div>Гравець: ${playerName}</div>`;
+                    scoreDisplay.innerHTML += `<div>Гравець: ${playerName}</div>`;
                 }
             }
         }
