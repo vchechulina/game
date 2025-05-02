@@ -1190,24 +1190,31 @@
             return urlParams.get('username') || 'Гість';
         }
 
-        function sendGameResultsToBot(score) {
-            const username = getUsernameFromUrl(); // Функція для отримання username з URL
-            const webAppUrl = 'https://script.google.com/macros/s/AKfycbwkKmZ9U5_Z1Z8MYhX2hNRyzuEQwRZ2YTVzW_FPtWf2w5CLQL_lmRUlX8BDvcRl21hr/exec'; // Замініть на URL з Apps Script
+        async function sendGameResultsToBot(score) {
+            const username = getUsernameFromUrl();
+            const webAppUrl = 'https://script.google.com/macros/s/AKfycbwBUszBaU1YNoPydGxWcsgAJZwGrQZUsd_M6L97OkkmwAxdtO7UgnuSqboO4sK1SdAi/exec'; // Ваш URL
 
-            fetch(webAppUrl, {
+            try {
+                const response = await fetch(webAppUrl, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ username, score })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.status === "error") {
-                console.error("Помилка Apps Script:", data.message);
-                } else {
-                console.log("Рейтинг оновлено!");
-                }
-            })
-            .catch(error => console.error("Помилка мережі:", error));
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify({ username, score }),
+                mode: 'no-cors' // Важливо для обходу CORS!
+                });
+
+                // Якщо використовуєте mode: 'no-cors', response буде "opaque"
+                console.log('Результат відправлено (може не бути деталей через no-cors)');
+                
+                // Альтернатива для режиму з CORS:
+                // const data = await response.json();
+                // console.log('Відповідь:', data);
+
+            } catch (error) {
+                console.error('Помилка відправки:', error);
+            }
         }
         // Початок завантаження зображень
         loadImages();
