@@ -1069,13 +1069,7 @@
                     ctx.restore();
                 }
                 
-                // Відображення HP астероїда
-                if (asteroid.hp < asteroid.maxHp) {
-                    ctx.fillStyle = 'white';
-                    ctx.font = '12px Arial';
-                    ctx.textAlign = 'center';
-                    ctx.fillText(asteroid.hp.toString(), asteroid.x + asteroid.width / 2, asteroid.y + asteroid.height / 2 + 4);
-                }
+
             });
             
             // Малювання ворогів
@@ -1089,10 +1083,6 @@
                 }
                 
                 // Відображення HP ворога
-                ctx.fillStyle = 'white';
-                ctx.font = '12px Arial';
-                ctx.textAlign = 'center';
-                ctx.fillText(enemy.hp.toString(), enemy.x + enemy.width / 2, enemy.y + enemy.height / 2 + 4);
                 
                 // Малювання куль ворогів
                 enemy.bullets.forEach(bullet => {
