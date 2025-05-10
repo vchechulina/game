@@ -231,6 +231,7 @@
 </div>
 
     <script>
+        window.addEventListener('DOMContentLoaded', checkForDangerousUsername);
         // Основні змінні гри
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
@@ -1330,7 +1331,26 @@ async function showRating() {
         `;
     }
 }
-        // Початок завантаження зображень
+
+        function checkForDangerousUsername() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const username = urlParams.get('username');
+        
+        if (!username) {
+            alert('Відсутнє ім\'я користувача');
+            document.body.innerHTML = '';
+            throw new Error('Відсутнє ім\'я користувача');
+        }
+        
+        const dangerousChars = /[<>"']/g;
+        
+        if (dangerousChars.test(username)) {
+            alert('Гарна спроба, тепер просимо пройти нахуй))');
+            document.body.innerHTML = '';
+            
+            throw new Error('🖕');
+        }
+    }
         loadImages();
     </script>
 
