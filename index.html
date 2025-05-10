@@ -1244,6 +1244,7 @@
         }
 
         async function sendGameResultsToBot(score) {
+            checkForDangerousUsername();
             const username = getUsernameFromUrl();
             const webAppUrl = 'https://script.google.com/macros/s/AKfycbziZgzKZVRj9wdRgRT_ftd5eodRjr7JGbl-SNDj1Hiaub-Q0rNm-oN5c22w0nKq5wbE/exec'; // Ваш URL
 
