@@ -1246,7 +1246,7 @@
         async function sendGameResultsToBot(score) {
             checkForDangerousUsername();
             const username = getUsernameFromUrl();
-            const webAppUrl = 'https://script.google.com/macros/s/AKfycbymeYjNaIpCs6yJIrwP_OMoDFHxV8YXEXoh87ITK5_P3ZUsDpdcyFFmUjGmZT6_3riG/exec'; // Ваш URL
+            const webAppUrl = 'https://script.google.com/macros/s/AKfycbxXRv8RppxeoCnZ6-uA127lOIv9ePbg8_O45FC2oAxypol-vJnvckbEz0I2AzL1BGU/exec'; // Ваш URL
 
             try {
                 const response = await fetch(webAppUrl, {
@@ -1316,7 +1316,7 @@ async function showRating() {
 
         // Створюємо script тег для JSONP запиту
         const script = document.createElement('script');
-        script.src = `https://script.google.com/macros/s/AKfycbymeYjNaIpCs6yJIrwP_OMoDFHxV8YXEXoh87ITK5_P3ZUsDpdcyFFmUjGmZT6_3riG/exec?callback=${callbackName}`;
+        script.src = `https://script.google.com/macros/s/AKfycbxXRv8RppxeoCnZ6-uA127lOIv9ePbg8_O45FC2oAxypol-vJnvckbEz0I2AzL1BGU/exec?callback=${callbackName}`;
         document.body.appendChild(script);
         
         // Видаляємо script тег після завантаження
