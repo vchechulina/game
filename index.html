@@ -1278,7 +1278,7 @@
                     return;
                 }
 
-                const webAppUrl = 'https://script.google.com/macros/s/AKfycbxXRv8RppxeoCnZ6-uA127lOIv9ePbg8_O45FC2oAxypol-vJnvckbEz0I2AzL1BGU/exec';
+                const webAppUrl = 'https://script.google.com/macros/s/AKfycbw9UL73zPIpNZgz5D-e3FXB_o0Mqouv1YtdPgISJYlN-no5Bw51tN7lvp-bHJWODiIA/exec';
 
                 try {
                     const response = await fetch(webAppUrl, {
@@ -1341,7 +1341,7 @@ async function showRating() {
 
         // Створюємо script тег для JSONP запиту
         const script = document.createElement('script');
-        script.src = `https://script.google.com/macros/s/AKfycbxXRv8RppxeoCnZ6-uA127lOIv9ePbg8_O45FC2oAxypol-vJnvckbEz0I2AzL1BGU/exec?callback=${callbackName}`;
+        script.src = `https://script.google.com/macros/s/AKfycbw9UL73zPIpNZgz5D-e3FXB_o0Mqouv1YtdPgISJYlN-no5Bw51tN7lvp-bHJWODiIA/exec?callback=${callbackName}`;
         document.body.appendChild(script);
         
         // Видаляємо script тег після завантаження
