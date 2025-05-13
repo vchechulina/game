@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Космічний захисник</title>
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline';">
     <style>
         body {
             margin: 0;
@@ -255,6 +256,29 @@
         resizeCanvas();
         window.addEventListener('resize', resizeCanvas);
         
+        function sanitizeUsername(username) {
+            if (!username) return 'Гість';
+            
+            // Видаляємо всі HTML-теги
+            username = username.replace(/<[^>]*>/g, '');
+            
+            // Замінюємо спецсимволи на HTML-сутності
+            const map = {
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#39;',
+                '/': '&#x2F;'
+            };
+            
+            return username.replace(/[&<>"'/]/g, function(m) { return map[m]; });
+        }
+
+        function isUsernameValid(username) {
+            if (!username || username.length > 20) return false;
+            return /^[a-zA-Zа-яА-ЯїЇіІєЄґҐ0-9 ]+$/.test(username);
+        }
         // Змінні гри
         let gameRunning = false;
         let score = 0;
@@ -1240,35 +1264,36 @@
 
         function getUsernameFromUrl() {
             const urlParams = new URLSearchParams(window.location.search);
-            return urlParams.get('username') || 'Гість';
+            const username = urlParams.get('username');
+            return sanitizeUsername(username) || 'Гість';
         }
 
         async function sendGameResultsToBot(score) {
             checkForDangerousUsername();
             const username = getUsernameFromUrl();
-            const webAppUrl = 'https://script.google.com/macros/s/AKfycbxXRv8RppxeoCnZ6-uA127lOIv9ePbg8_O45FC2oAxypol-vJnvckbEz0I2AzL1BGU/exec'; // Ваш URL
-
-            try {
-                const response = await fetch(webAppUrl, {
-                method: 'POST',
-                headers: { 
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json'
-                },
-                body: JSON.stringify({ username, score }),
-                mode: 'no-cors' // Важливо для обходу CORS!
-                });
-
-                // Якщо використовуєте mode: 'no-cors', response буде "opaque"
-                console.log('Результат відправлено (може не бути деталей через no-cors)');
                 
-                // Альтернатива для режиму з CORS:
-                // const data = await response.json();
-                // console.log('Відповідь:', data);
+                // Додаткова перевірка перед відправкою
+                if (!isUsernameValid(username)) {
+                    console.error('Неприпустиме ім\'я користувача');
+                    return;
+                }
 
-            } catch (error) {
-                console.error('Помилка відправки:', error);
-            }
+                const webAppUrl = 'https://script.google.com/macros/s/AKfycbxXRv8RppxeoCnZ6-uA127lOIv9ePbg8_O45FC2oAxypol-vJnvckbEz0I2AzL1BGU/exec';
+
+                try {
+                    const response = await fetch(webAppUrl, {
+                        method: 'POST',
+                        headers: { 
+                            'Content-Type': 'application/json',
+                            'Accept': 'application/json'
+                        },
+                        body: JSON.stringify({ username: sanitizeUsername(username), score }),
+                        mode: 'no-cors'
+                    });
+                    console.log('Результат відправлено');
+                } catch (error) {
+                    console.error('Помилка відправки:', error);
+                }
         }
 
         // Елементи рейтингу
@@ -1302,7 +1327,7 @@ async function showRating() {
                     playerElement.className = 'rating-item';
                     playerElement.innerHTML = `
                         <span class="rating-position">${index + 1}.</span>
-                        <span class="rating-name">${player[0] || 'Невідомий'}</span>
+                        <span class="rating-name">${sanitizeUsername(player[0] || 'Невідомий')}</span>
                         <span class="rating-score">${player[1] || 0}</span>
                     `;
                     ratingList.appendChild(playerElement);
@@ -1332,26 +1357,25 @@ async function showRating() {
         `;
     }
 }
-
-        function checkForDangerousUsername() {
-        const urlParams = new URLSearchParams(window.location.search);
-        const username = urlParams.get('username');
-        
-        if (!username) {
-            alert('Відсутнє ім\'я користувача');
-            document.body.innerHTML = '';
-            throw new Error('Відсутнє ім\'я користувача');
-        }
-        
-        const dangerousChars = /[<>"']/g;
-        
-        if (dangerousChars.test(username)) {
-            alert('Гарна спроба, тепер просимо пройти нахуй))');
-            document.body.innerHTML = '';
-            
-            throw new Error('🖕');
-        }
+function checkForDangerousUsername() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const username = urlParams.get('username');
+    
+    if (!username) {
+        alert('Відсутнє ім\'я користувача');
+        document.body.innerHTML = '';
+        throw new Error('Відсутнє ім\'я користувача');
     }
+    
+    if (!isUsernameValid(username)) {
+        alert('Невірний формат імені користувача. Дозволені тільки літери, цифри та пробіли.');
+        document.body.innerHTML = '';
+        throw new Error('Невірне ім\'я користувача');
+    }
+    
+    // Додатковий захист на випадок, якщо хтось модифікує код після завантаження
+    return sanitizeUsername(username);
+}
         loadImages();
     </script>
 
